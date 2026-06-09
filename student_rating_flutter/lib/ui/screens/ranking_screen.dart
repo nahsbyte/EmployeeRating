@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -91,8 +89,6 @@ class RankingScreenState extends State<RankingScreen> {
         children: [
           _RankingHero(
             top3: top3,
-            totalStudents: _rankings.length,
-            classId: widget.classId,
           ),
           _RankingList(
             rest: rest,
@@ -205,26 +201,24 @@ class _RankingSkeleton extends StatelessWidget {
 
 class _RankingHero extends StatelessWidget {
   final List<Ranking> top3;
-  final int totalStudents;
-  final String? classId;
 
   const _RankingHero({
     required this.top3,
-    required this.totalStudents,
-    required this.classId,
   });
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final podium = _PodiumData.from(top3);
+    final heroHeight = (size.height * 0.54).clamp(430.0, 500.0).toDouble();
+    final podiumTop = size.height < 760 ? 64.0 : 72.0;
     return SizedBox(
-      height: size.height * 0.68,
+      height: heroHeight,
       child: Stack(
         children: [
           Positioned.fill(
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF0E0E14), Color(0xFF191922)],
@@ -235,28 +229,20 @@ class _RankingHero extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   _HeaderToggle(),
-                  const SizedBox(height: 16),
-                  _InsightBanner(
-                    position: podium.rank1?.position,
-                    totalStudents: totalStudents,
-                    classId: classId,
-                  ),
-                  const SizedBox(height: 16),
-                  _CountdownChip(),
                 ],
               ),
             ),
           ),
           Positioned.fill(
-            top: 120,
+            top: podiumTop - 8,
             child: CustomPaint(
               painter: _ArcPainter(),
             ),
           ),
           Positioned.fill(
-            top: 170,
+            top: podiumTop,
             child: Align(
               alignment: Alignment.topCenter,
               child: _Podium(podium: podium),
@@ -282,116 +268,6 @@ class _HeaderToggle extends StatelessWidget {
               ),
         ),
       ],
-    );
-  }
-}
-
-class _InsightBanner extends StatelessWidget {
-  final int? position;
-  final int totalStudents;
-  final String? classId;
-
-  const _InsightBanner({
-    required this.position,
-    required this.totalStudents,
-    required this.classId,
-  });
-
-  int get _betterThanPercent {
-    if (position == null || totalStudents <= 1) return 100;
-    final value = ((totalStudents - position!) / (totalStudents - 1)) * 100;
-    return value.round().clamp(0, 100);
-  }
-
-  String get _classLabel {
-    final id = classId?.trim() ?? '';
-    if (id.isEmpty) return 'kelas Anda';
-    return 'kelas $id';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final positionText = position != null ? '#$position' : '#-';
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  positionText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kamu di atas $_betterThanPercent% siswa',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'berdasarkan performa SAW di $_classLabel.',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CountdownChip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.12)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.timer, color: Colors.white70, size: 16),
-            SizedBox(width: 8),
-            Text('06h 23m',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -437,29 +313,40 @@ class _Podium extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slots = <Widget>[
-      if (podium.rank2 != null) _PodiumColumn(data: podium.rank2, tier: 2),
-      if (podium.rank1 != null) _PodiumColumn(data: podium.rank1, tier: 1),
-      if (podium.rank3 != null) _PodiumColumn(data: podium.rank3, tier: 3),
-    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+        final horizontalGap = width < 360 ? 8.0 : 12.0;
+        final availableWidth = width - (horizontalGap * 2);
+        final columnWidth = (availableWidth / 3).clamp(82.0, 128.0);
+        final slots = <Widget>[
+          if (podium.rank2 != null)
+            _PodiumColumn(data: podium.rank2, tier: 2, width: columnWidth),
+          if (podium.rank1 != null)
+            _PodiumColumn(data: podium.rank1, tier: 1, width: columnWidth),
+          if (podium.rank3 != null)
+            _PodiumColumn(data: podium.rank3, tier: 3, width: columnWidth),
+        ];
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(height: 30),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: slots
-              .map(
-                (slot) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: slot,
-                ),
-              )
-              .toList(),
-        ),
-      ],
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < slots.length; i++) ...[
+                  if (i > 0) SizedBox(width: horizontalGap),
+                  slots[i],
+                ],
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -467,8 +354,13 @@ class _Podium extends StatelessWidget {
 class _PodiumColumn extends StatelessWidget {
   final _RankTile? data;
   final int tier;
+  final double width;
 
-  const _PodiumColumn({required this.data, required this.tier});
+  const _PodiumColumn({
+    required this.data,
+    required this.tier,
+    required this.width,
+  });
 
   double get height {
     switch (tier) {
@@ -489,64 +381,74 @@ class _PodiumColumn extends StatelessWidget {
     final score = data!.score;
     final position = data!.position;
     final isWinner = tier == 1;
-    return Column(
-      children: [
-        _AvatarBadge(position: position),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.16)),
-          ),
-          child: Column(
-            children: [
-              Text(name,
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: isWinner ? 18 : 16)),
-              const SizedBox(height: 4),
-              Text('${score.toStringAsFixed(3)} poin',
-                  style: TextStyle(
-                    color: isWinner ? Colors.white : Colors.white70,
-                    fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
-                  )),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: 90,
-          height: height,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFEFEFF2), Color(0xFFD8D8DE)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+    final platformWidth = (width * 0.76).clamp(72.0, 90.0);
+    return SizedBox(
+      width: width,
+      child: Column(
+        children: [
+          _AvatarBadge(position: position),
+          const SizedBox(height: 8),
+          Container(
+            width: width,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.16)),
             ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '$position',
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-              ),
+            child: Column(
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: isWinner ? 17 : 15)),
+                const SizedBox(height: 4),
+                Text('${score.toStringAsFixed(3)} poin',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isWinner ? Colors.white : Colors.white70,
+                      fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
+                    )),
+              ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Container(
+            width: platformWidth,
+            height: height,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEFEFF2), Color(0xFFD8D8DE)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                '$position',
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
